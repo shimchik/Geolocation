@@ -2,9 +2,12 @@
  * Author: Scott Schluer (scott.schluer@gmail.com)
  * May 29, 2012
  * https://github.com/scottschluer/Geolocation
+ * Modifications: Oleg Shimchik (oleg.a.shimchik@gmail.com)
+ * December 22, 2016
  */
 
 using System;
+using System.ComponentModel;
 
 namespace Geolocation
 {
@@ -18,6 +21,8 @@ namespace Geolocation
         /// </summary>
         public static double EarthRadiusInMiles = 3956.0;
 
+        public static double EarthRadiusInMeters = 6371000;
+
         /// <summary>   
         /// Calculate the distance between two sets of coordinates.
         /// <param name="originLatitude">The latitude of the origin location in decimal notation</param>
@@ -25,16 +30,31 @@ namespace Geolocation
         /// <param name="destinationLatitude">The latitude of the destination location in decimal notation</param>
         /// <param name="destinationLongitude">The longitude of the destination location in decimal notation</param>
         /// <param name="decimalPlaces">The number of decimal places to round the return value to</param>
-        /// <returns>A <see cref="Double"/> value representing the distance in miles from the origin to the destination coordinate</returns>
+        /// <param name="distanceMeasure">Distance measure</param>
+        /// <returns>A <see cref="Double"/> value representing the distance from the origin to the destination coordinate according to distance measure</returns>
         /// </summary>
-        public static double GetDistance(double originLatitude, double originLongitude, double destinationLatitude, double destinationLongitude, int decimalPlaces)
+        public static double GetDistance(double originLatitude, double originLongitude, double destinationLatitude, double destinationLongitude, int decimalPlaces, DistanceMeasure distanceMeasure)
+        {
+            switch (distanceMeasure)
+            {
+                case DistanceMeasure.Meters:
+                    return GetDistance(originLatitude, originLongitude, destinationLatitude, destinationLongitude,
+                                       decimalPlaces, EarthRadiusInMeters);
+                case DistanceMeasure.Miles:
+                    return GetDistance(originLatitude, originLongitude, destinationLatitude, destinationLongitude,
+                                       decimalPlaces, EarthRadiusInMiles);
+                default:
+                    throw new InvalidEnumArgumentException("Invalid distance measure supplied");
+            }            
+        }
+
+        private static double GetDistance(double originLatitude, double originLongitude, double destinationLatitude, double destinationLongitude, int decimalPlaces, double radius)
         {
             if (!CoordinateValidator.Validate(originLatitude, originLongitude))
                 throw new ArgumentException("Invalid origin coordinates supplied.");
             if (!CoordinateValidator.Validate(destinationLatitude, destinationLongitude))
                 throw new ArgumentException("Invalid destination coordinates supplied.");
 
-            double radius = EarthRadiusInMiles;
             return Math.Round(
                     radius * 2 *
                     Math.Asin(Math.Min(1,
@@ -45,17 +65,68 @@ namespace Geolocation
                                                      2.0))))), decimalPlaces);
         }
 
+
+        /// <summary>   
+        /// Calculate the speed between two waypoints.
+        /// <param name="originLatitude">The latitude of the origin location in decimal notation</param>
+        /// <param name="originLongitude">The longitude of the origin location in decimal notation</param>
+        /// <param name="destinationLatitude">The latitude of the destination location in decimal notation</param>
+        /// <param name="destinationLongitude">The longitude of the destination location in decimal notation</param>
+        /// <param name="startTime">The time of arrival to origin location</param>
+        /// <param name="endTime">The time of arrival to destination location</param>
+        /// <param name="decimalPlaces">The number of decimal places to round the return value to</param>
+        /// <param name="speedMeasure">Speed measure</param>
+        /// <returns>A <see cref="Double"/> value representing the distance from the origin to the destination coordinate according to distance measure</returns>
+        /// </summary>
+        public static double GetSpeed(double originLatitude, double originLongitude, double destinationLatitude,
+            double destinationLongitude, DateTime startTime, DateTime endTime, int decimalPlaces, SpeedMeasure speedMeasure)
+        {
+            var timeDifference = endTime - startTime;
+            double distance;
+
+            switch (speedMeasure)
+            {
+                case SpeedMeasure.KilometersPerHour:
+                    distance = GetDistance(originLatitude, originLongitude, destinationLatitude,
+                        destinationLongitude, decimalPlaces, DistanceMeasure.Meters);        
+                    return Math.Round(distance / timeDifference.TotalHours * 1000, decimalPlaces);
+                case SpeedMeasure.MilesPerHour:
+                    distance = GetDistance(originLatitude, originLongitude, destinationLatitude,
+                        destinationLongitude, decimalPlaces, DistanceMeasure.Miles);
+                    return Math.Round(distance / timeDifference.TotalHours, decimalPlaces);
+                default:
+                    throw new InvalidEnumArgumentException("Invalid speed measure supplied");
+            }
+        }
+
+        /// <summary>   
+        /// Calculate the speed between two waypoints.
+        /// <param name="originCoordinate">A <see cref="Coordinate"/> object representing the origin location</param>
+        /// <param name="destinationCoordinate">A <see cref="Coordinate"/> object representing the destination location</param>
+        /// <param name="startTime">The time of arrival to origin location</param>
+        /// <param name="endTime">The time of arrival to destination location</param>
+        /// <param name="decimalPlaces">The number of decimal places to round the return value to</param>
+        /// <param name="speedMeasure">Speed measure</param>
+        /// <returns>A <see cref="Double"/> value representing the distance from the origin to the destination coordinate according to distance measure</returns>
+        /// </summary>
+        public static double GetSpeed(Coordinate originCoordinate, Coordinate destinationCoordinate, DateTime startTime, DateTime endTime, int decimalPlaces, SpeedMeasure speedMeasure)
+        {
+            return GetSpeed(originCoordinate.Latitude, originCoordinate.Longitude, destinationCoordinate.Latitude,
+                destinationCoordinate.Longitude, startTime, endTime, decimalPlaces, speedMeasure);
+        }
+
         /// <summary>
         /// Calculate the distance between two sets of <see cref="Coordinate"/> objects
         /// </summary>
         /// <param name="originCoordinate">A <see cref="Coordinate"/> object representing the origin location</param>
         /// <param name="destinationCoordinate">A <see cref="Coordinate"/> object representing the destination location</param>
         /// <param name="decimalPlaces">The number of decimal places to round the return value to</param>
-        /// <returns>A <see cref="Double"/> value representing the distance in miles from the origin to the destination coordinate</returns>
-        public static Double GetDistance(Coordinate originCoordinate, Coordinate destinationCoordinate, int decimalPlaces)
+        /// <param name="distanceMeasure">Distance measure</param>
+        /// <returns>A <see cref="Double"/> value representing the distance from the origin to the destination coordinate according to distance measure</returns>
+        public static Double GetDistance(Coordinate originCoordinate, Coordinate destinationCoordinate, int decimalPlaces, DistanceMeasure distanceMeasure)
         {
             return GetDistance(originCoordinate.Latitude, originCoordinate.Longitude, destinationCoordinate.Latitude,
-                destinationCoordinate.Longitude, decimalPlaces);
+                destinationCoordinate.Longitude, decimalPlaces, distanceMeasure);
         }
 
         /// <summary>

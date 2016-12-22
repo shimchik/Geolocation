@@ -43,9 +43,11 @@
     <Compile Include="Coordinate.cs" />
     <Compile Include="CoordinateBoundaries.cs" />
     <Compile Include="CoordinateValidator.cs" />
+    <Compile Include="DistanceMeasure.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="GeoCalculator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SpeedMeasure.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
